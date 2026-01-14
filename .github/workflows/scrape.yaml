@@ -1,0 +1,50 @@
+name: Scrape Latest Data (PHP Panther)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 23 * * *' # 23:30 UTC = 06:30 WIB
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    env:
+      TZ: 'Asia/Jakarta'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, json
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Run scraper (Panther)
+        run: |
+          echo "⏰ Current time: $(date)"
+          php scrape.php
+
+      - name: Commit and push if data changed
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore: auto-scrape new data (PHP Panther)'
+          file_pattern: 'public/data.json'
+          commit_user_name: 'GitHub Actions'
+          commit_user_email: 'actions@github.com'
+          commit_author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
+
+      - name: Manual trigger test
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "🎯 Manual trigger berhasil!"
+          echo "⏰ Waktu: $(date)"
+          echo "📅 Schedule aktif setiap 06:30 WIB"
